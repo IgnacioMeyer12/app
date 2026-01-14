@@ -1,0 +1,45 @@
+<div class="cita-container">
+  <button class="btn btn-outline" routerLink="/">← Volver al menú</button>
+  <h2>Solicitar Cita</h2>
+
+  <div *ngIf="loading">Cargando...</div>
+  <div *ngIf="message" [class]="messageType === 'success' ? 'message success' : 'message error'">{{ message }}</div>
+
+  <div class="form-group">
+    <label for="vehiculo">Vehículo</label>
+    <select id="vehiculo" [(ngModel)]="selectedVehicleId">
+      <option value="">-- Selecciona --</option>
+      <option *ngFor="let v of vehicles" [value]="v.idVehiculo">{{ v.marca }} {{ v.modelo }} ({{ v.anio }})</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label for="fecha">Fecha</label>
+    <input id="fecha" type="date" [(ngModel)]="fecha" (change)="fetchAvailability(fecha)" />
+  </div>
+
+  <div class="form-group">
+    <label>Horarios disponibles</label>
+    <div class="slots">
+      <button *ngFor="let s of slots" type="button" class="slot" [class.available]="s.available" [class.booked]="!s.available" [class.selected]="selectedSlot === s.time" (click)="selectSlot(s.time, s.available)">
+        {{ s.time }}
+      </button>
+    </div>
+    <div class="legend">
+      <span class="legend-item"><span class="box available"></span> Disponible</span>
+      <span class="legend-item"><span class="box booked"></span> Ocupado</span>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="motivo">Motivo</label>
+    <select id="motivo" [(ngModel)]="motivo">
+      <option *ngFor="let m of motivos" [value]="m">{{ m }}</option>
+    </select>
+  </div>
+
+  <div class="form-actions">
+    <button class="btn-primary" (click)="submit()" [disabled]="loading">Solicitar cita</button>
+    <button class="btn-secondary" (click)="router.navigate(['/catalogo'])" [disabled]="loading">Volver al catálogo</button>
+  </div>
+</div>

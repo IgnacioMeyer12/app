@@ -1,0 +1,94 @@
+<div class="citas-admin-container">
+  <button class="btn btn-outline" routerLink="/">← Volver al menú</button>
+  <h2>Citas Programadas</h2>
+
+  <div *ngIf="loading">Cargando citas...</div>
+
+  <div *ngIf="!loading">
+    <div class="tabs">
+      <button [class.active]="selectedTab === 'pendientes'" 
+              (click)="selectTab('pendientes')">
+        🟡 Pendientes ({{ pendientes.length }})
+      </button>
+      <button [class.active]="selectedTab === 'contestadas'" 
+              (click)="selectTab('contestadas')">
+        ✅ Contestadas ({{ contestadas.length }})
+      </button>
+    </div>
+
+    <!-- PENDIENTES -->
+    <div *ngIf="selectedTab === 'pendientes'">
+      <h3>🟡 Pendientes ({{ pendientes.length }})</h3>
+
+      <div *ngIf="pendientes.length === 0">No hay citas pendientes.</div>
+
+      <table *ngIf="pendientes.length > 0" class="citas-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Cliente</th>
+            <th>DNI</th>
+            <th>Vehículo</th>
+            <th>Fecha / Hora</th>
+            <th>Motivo</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of pendientes">
+            <td>{{ c.id }}</td>
+            <td>{{ c.nombre }} {{ c.apellido }}</td>
+            <td>{{ c.dni }}</td>
+            <td>{{ c.marca }} {{ c.modelo }} ({{ c.anio }})</td>
+            <td>{{ c.fecha_hora }}</td>
+            <td>{{ c.motivo }}</td>
+            <td>{{ mapEstado(c.estado) }}</td>
+            <td>
+              <button class="btn-aceptar" (click)="setEstado(c, 'aceptada')">
+                Aceptar
+              </button>
+              <button class="btn-rechazar" (click)="setEstado(c, 'rechazada')">
+                Rechazar
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- CONTESTADAS -->
+    <div *ngIf="selectedTab === 'contestadas'">
+      <h3>✅ Contestadas ({{ contestadas.length }})</h3>
+
+      <div *ngIf="contestadas.length === 0">No hay citas contestadas.</div>
+
+      <table *ngIf="contestadas.length > 0" class="citas-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Cliente</th>
+            <th>DNI</th>
+            <th>Vehículo</th>
+            <th>Fecha / Hora</th>
+            <th>Motivo</th>
+            <th>Estado</th>
+            <th>Motivo admin</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of contestadas">
+            <td>{{ c.id }}</td>
+            <td>{{ c.nombre }} {{ c.apellido }}</td>
+            <td>{{ c.dni }}</td>
+            <td>{{ c.marca }} {{ c.modelo }} ({{ c.anio }})</td>
+            <td>{{ c.fecha_hora }}</td>
+            <td>{{ c.motivo }}</td>
+            <td>{{ mapEstado(c.estado) }}</td>
+            <td>{{ c.admin_message || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,33 @@
+<div class="catalogo-container">
+  <button class="btn btn-outline" routerLink="/">← Volver al menú</button>
+  <h2>Catálogo</h2>
+
+  <div *ngIf="loading" class="loading">Cargando vehículos...</div>
+  <div *ngIf="error" class="message error">{{ error }}</div>
+
+  <div *ngIf="!loading && vehicles && vehicles.length === 0" class="no-items">
+    No hay vehículos disponibles en el catálogo.
+  </div>
+
+  <div class="grid" *ngIf="!loading && vehicles && vehicles.length">
+    <div class="card" *ngFor="let v of vehicles">
+      <div class="image">
+        <img *ngIf="v.fotos && v.fotos.length" [src]="v.fotos[0]" [alt]="v.marca + ' ' + v.modelo" />
+        <div *ngIf="!v.fotos || !v.fotos.length" class="no-photo">No hay foto</div>
+      </div>
+
+      <div class="info">
+        <h3>{{ v.marca }} {{ v.modelo }}</h3>
+        <p class="muted">Año: {{ v.anio }} · Km: {{ v.km }} · Stock: {{ v.stock || 0 }}</p>
+        <p class="price">{{ formatCurrency(v.precio) }}</p>
+        <div class="meta">
+          <span class="color-swatch" [style.background]="v.color || '#ccc'" title="Color"></span>
+          <div class="meta-actions">
+            <button type="button" class="btn-primary" (click)="viewDetails(v)">Ver detalles</button>
+            <button type="button" class="btn-secondary" (click)="schedule(v)" [disabled]="!v.stock || v.stock <= 0">Seleccionar cita</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

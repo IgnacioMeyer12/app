@@ -1,0 +1,205 @@
+﻿<div class="app-container">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-overlay"></div>
+    <div class="header-content">
+      <div class="logo-section">
+        <div class="header-titles">
+          <h1 class="header-title">Automotores Meyer</h1>
+          <h2 class="header-subtitle">Amenabar 2469 · Tel: 341 383 8911 · ignacioarielmeyer@gmail.com</h2>
+        </div>
+      </div>
+
+      <!-- Si está logueado, mostrar información del usuario -->
+      @if (isLoggedIn && currentUser) {
+        <div class="user-info">
+          <div class="user-welcome">
+            <span class="welcome-text">Bienvenido, {{ currentUser.nombre }} {{ currentUser.apellido }}</span>
+            <span class="user-role">{{ currentUser.rol === 'admin' ? 'Administrador' : 'Cliente' }}</span>
+          </div>
+          <button class="btn-logout" (click)="onLogout()">
+            Cerrar Sesión
+          </button>
+        </div>
+      }
+    </div>
+    
+    <!-- Onda decorativa -->
+    <div class="wave-container">
+      <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
+        <path d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,112C672,96,768,96,864,112C960,128,1056,160,1152,160C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" fill="#ffffff"></path>
+      </svg>
+    </div>
+  </header>
+
+  <main class="main-content">
+  <!-- If NOT logged in, show login/hero -->
+  <ng-container *ngIf="!isLoggedIn">
+    <section class="hero-section">
+      <div class="hero-content">
+        <div class="hero-text">
+          <h2 class="hero-title">Descubre la <span class="highlight">Excelencia</span> Automotriz</h2>
+          <p class="hero-description">Los vehículos más exclusivos y sofisticados del mercado, seleccionados para los clientes más exigentes</p>
+          <div class="hero-stats">
+            <div class="stat">
+              <span class="stat-number">50+</span>
+              <span class="stat-label">Vehículos Premium</span>
+            </div>
+            <div class="stat">
+              <span class="stat-number">100%</span>
+              <span class="stat-label">Garantía</span>
+            </div>
+            <div class="stat">
+              <span class="stat-number">24/7</span>
+              <span class="stat-label">Asesoramiento</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="auth-section">
+      <div class="container">
+        <div class="auth-card">
+          <div class="card-header">
+            <h3 class="card-title">Iniciar Sesión</h3>
+            <p class="card-subtitle">Accede a tu cuenta para explorar nuestra exclusiva colección</p>
+          </div>
+
+          <form class="login-form" [formGroup]="loginForm" (ngSubmit)="onLogin()">
+            <div class="form-group">
+              <label for="dni" class="form-label">DNI</label>
+              <input type="text" id="dni" formControlName="dni" placeholder="Ingrese su número de DNI" class="form-input" [class.error]="loginForm.get('dni')?.invalid && loginForm.get('dni')?.touched">
+              <div class="error-message" *ngIf="loginForm.get('dni')?.invalid && loginForm.get('dni')?.touched">El DNI es requerido (mínimo 7 caracteres)</div>
+            </div>
+
+            <div class="form-group">
+              <label for="password" class="form-label">Contraseña</label>
+              <input type="password" id="password" formControlName="password" placeholder="Ingrese su contraseña" class="form-input" [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+              <div class="error-message" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">La contraseña es requerida (mínimo 6 caracteres)</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full" [disabled]="loginForm.invalid || loading" [class.loading]="loading">
+              <span class="btn-content">{{ loading ? 'Iniciando Sesión...' : 'Iniciar Sesión' }}</span>
+            </button>
+
+            <div class="auth-divider"><span>¿Primera vez en Automotores Meyer?</span></div>
+
+            <a routerLink="/register" class="btn btn-outline btn-full">Crear Cuenta Gratuita</a>
+          </form>
+
+          <div class="demo-section">
+            <div class="demo-header">
+              <h4 class="demo-title">Acceso de Prueba</h4>
+              <p class="demo-subtitle">Puedes probar la plataforma con estos usuarios</p>
+            </div>
+
+            <div class="demo-cards">
+              <div class="demo-card admin">
+                <div class="demo-card-header"><span class="demo-role">Administrador</span></div>
+                <div class="demo-card-content">
+                  <div class="demo-field"><span class="demo-label">DNI:</span><span class="demo-value">12345678</span></div>
+                  <div class="demo-field"><span class="demo-label">Contraseña:</span><span class="demo-value">admin123</span></div>
+                  <button class="btn-copy" (click)="fillDemoCredentials('admin')">Usar estas credenciales</button>
+                </div>
+              </div>
+
+              <div class="demo-card client">
+                <div class="demo-card-header"><span class="demo-role">Cliente</span></div>
+                <div class="demo-card-content">
+                  <div class="demo-field"><span class="demo-label">DNI:</span><span class="demo-value">87654321</span></div>
+                  <div class="demo-field"><span class="demo-label">Contraseña:</span><span class="demo-value">cliente123</span></div>
+                  <button class="btn-copy" (click)="fillDemoCredentials('client')">Usar estas credenciales</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </ng-container>
+
+  <!-- If logged in, show dashboard -->
+  <ng-container *ngIf="isLoggedIn && currentUser">
+    <section class="dashboard-section">
+      <div class="container">
+        <div class="dashboard-header">
+          <h2 class="dashboard-title">{{ currentUser?.rol === 'admin' ? 'Panel de Administración' : 'Mi Espacio Personal' }}</h2>
+          <p class="dashboard-subtitle">{{ currentUser?.rol === 'admin' ? 'Gestiona toda la concesionaria desde un solo lugar' : 'Disfruta de nuestros servicios exclusivos' }}</p>
+        </div>
+
+        <div *ngIf="currentUser?.rol === 'cliente'" class="dashboard-cards">
+          <div class="dashboard-card primary">
+            <div class="card-icon"><i class="fas fa-car"></i></div>
+            <h3 class="card-title">Ver Vehículos</h3>
+            <p class="card-description">Explora nuestra exclusiva colección de autos de lujo disponibles</p>
+            <button class="card-btn" (click)="verVehiculos()">Explorar Catálogo</button>
+          </div>
+
+          <div class="dashboard-card success">
+            <div class="card-icon"><i class="fas fa-calendar-alt"></i></div>
+            <h3 class="card-title">Realizar Cita</h3>
+            <p class="card-description">Agenda una cita para ver y probar tu vehículo favorito</p>
+            <button class="card-btn" (click)="realizarCita()">Solicitar Cita</button>
+          </div>
+
+          <div class="dashboard-card info">
+            <div class="card-icon"><i class="fas fa-calendar-check"></i></div>
+            <h3 class="card-title">Mis Citas</h3>
+            <p class="card-description">Revisa el estado de tus solicitudes de cita</p>
+            <button class="card-btn" (click)="verMisCitas()">Mis Citas</button>
+          </div>
+        </div>
+
+        <div *ngIf="currentUser?.rol === 'admin'" class="dashboard-cards">
+          <div class="dashboard-card warning">
+            <div class="card-icon"><i class="fas fa-user-shield"></i></div>
+            <h3 class="card-title">Dar de Alta Admin</h3>
+            <p class="card-description">Registra nuevos administradores para gestionar la concesionaria</p>
+            <button class="card-btn" (click)="darAltaAdmin()">Crear Administrador</button>
+          </div>
+
+          <div class="dashboard-card info">
+            <div class="card-icon"><i class="fas fa-file-alt"></i></div>
+            <h3 class="card-title">Ver Citas</h3>
+            <p class="card-description">Gestiona todas las citas programadas por los clientes</p>
+            <button class="card-btn" (click)="verCitas()">Ver Citas Programadas</button>
+          </div>
+
+          <div class="dashboard-card primary">
+            <div class="card-icon"><i class="fas fa-plus"></i></div>
+            <h3 class="card-title">Dar de Alta Vehículo</h3>
+            <p class="card-description">Agrega nuevos vehículos a nuestro catálogo exclusivo</p>
+            <button class="card-btn" (click)="darAltaVehiculo()">Agregar Vehículo</button>
+          </div>
+        </div>
+
+        <div class="dashboard-info">
+          <div class="info-card">
+            <h4>¿Necesitas ayuda?</h4>
+            <p>Contacta con nuestro equipo de soporte para cualquier consulta o asistencia.</p>
+            <div class="contact-info">
+              <span>Tel: 341 383 8911</span>
+              <span>Email: ignacioarielmeyer@gmail.com</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="logout-section">
+          <button class="btn btn-outline" (click)="onLogout()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
+        </div>
+      </div>
+    </section>
+  </ng-container>
+</main>
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <p>&copy; {{ currentYear }} Automotores Meyer · Amenabar 2469 · Tel: 341 383 8911 · ignacioarielmeyer@gmail.com</p>
+        <div class="footer-links">
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>

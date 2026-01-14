@@ -1,0 +1,32 @@
+<div class="mis-citas-container">
+  <button class="btn btn-outline" routerLink="/">← Volver al menú</button>
+  <h2>Mis Citas</h2>
+
+  <div *ngIf="loading">Cargando...</div>
+  <div *ngIf="message" class="message error">{{ message }}</div>
+
+  <table *ngIf="!loading && citas && citas.length" class="citas-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Vehículo</th>
+        <th>Fecha / Hora</th>
+        <th>Motivo</th>
+        <th>Estado</th>
+        <th>Mensaje admin</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let c of citas">
+        <td>{{ c.id }}</td>
+        <td>{{ c.marca }} {{ c.modelo }} ({{ c.anio }})</td>
+        <td>{{ c.fecha_hora }}</td>
+        <td>{{ c.motivo }}</td>
+        <td>{{ mapEstado(c.estado) }}</td>
+        <td>{{ c.admin_message || '-' }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!loading && (!citas || citas.length === 0)">No tienes citas programadas.</div>
+</div>

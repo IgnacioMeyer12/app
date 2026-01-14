@@ -1,0 +1,334 @@
+﻿<div class="register-container">
+  <!-- Header con navegación -->
+  <header class="header">
+    <div class="header-overlay"></div>
+    <div class="header-content">
+      <div class="header-nav">
+        <a routerLink="/" class="back-link">
+          <i class="icon-arrow-left">←</i>
+          Volver al Inicio
+        </a>
+        <div class="logo-section">
+          <div class="logo-container">
+            <img src="/img/Logo.png" alt="Automotores Meyer" class="logo">
+          </div>
+          <div class="header-titles">
+            <h1 class="header-title">Automotores Meyer</h1>
+            <h2 class="header-subtitle">Unite a Nuestra Comunidad</h2>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Onda decorativa -->
+    <div class="wave-container">
+      <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
+        <path d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,112C672,96,768,96,864,112C960,128,1056,160,1152,160C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" fill="#ffffff"></path>
+      </svg>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="container">
+      <div class="register-wrapper">
+        <!-- Tarjeta de registro -->
+        <div class="register-card">
+          <div class="card-header">
+            <div class="step-indicator">
+              <div class="step active">
+                <span class="step-number">1</span>
+                <span class="step-label">Información Personal</span>
+              </div>
+              <div class="step-line"></div>
+              <div class="step">
+                <span class="step-number">2</span>
+                <span class="step-label">Verificación</span>
+              </div>
+            </div>
+            
+            <h2 class="card-title">{{ adminMode ? 'Dar de Alta Administrador' : 'Crear Cuenta Premium' }}</h2>
+            <p class="card-subtitle">{{ adminMode ? 'Crea una nueva cuenta de administrador' : 'Completá tus datos para acceder a beneficios exclusivos' }}</p>
+          </div>
+
+          <form class="register-form" [formGroup]="registerForm" (ngSubmit)="onRegister()">
+            <!-- Información Personal -->
+            <div class="form-section">
+              <h4 class="section-title">
+                <i class="icon-user-circle" aria-hidden="true"></i>
+                Información Personal
+              </h4>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="dni" class="form-label">
+                    <i class="icon-id-card" aria-hidden="true"></i>
+                    DNI *
+                  </label>
+                  <input 
+                    type="text" 
+                    id="dni" 
+                    formControlName="dni" 
+                    placeholder="Ej: 40123456"
+                    class="form-input"
+                    [class.error]="registerForm.get('dni')?.invalid && registerForm.get('dni')?.touched">
+                  @if (registerForm.get('dni')?.invalid && registerForm.get('dni')?.touched) {
+                    <div class="error-message">
+                      <i class="icon-warning" aria-hidden="true"></i>
+                      El DNI debe tener al menos 7 dígitos
+                    </div>
+                  }
+                </div>
+
+                <div class="form-group">
+                  <label for="telefono" class="form-label">
+                    <i class="icon-phone" aria-hidden="true"></i>
+                    Teléfono *
+                  </label>
+                  <input 
+                    type="tel" 
+                    id="telefono" 
+                    formControlName="telefono" 
+                    placeholder="Ej: 3416123456"
+                    class="form-input"
+                    [class.error]="registerForm.get('telefono')?.invalid && registerForm.get('telefono')?.touched">
+                  @if (registerForm.get('telefono')?.invalid && registerForm.get('telefono')?.touched) {
+                    <div class="error-message">
+                      <i class="icon-warning" aria-hidden="true"></i>
+                      Ingresa un número de teléfono válido
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="nombre" class="form-label">
+                    <i class="icon-user" aria-hidden="true"></i>
+                    Nombre *
+                  </label>
+                  <input 
+                    type="text" 
+                    id="nombre" 
+                    formControlName="nombre" 
+                    placeholder="Tu nombre"
+                    class="form-input"
+                    [class.error]="registerForm.get('nombre')?.invalid && registerForm.get('nombre')?.touched">
+                  @if (registerForm.get('nombre')?.invalid && registerForm.get('nombre')?.touched) {
+                    <div class="error-message">
+                      <i class="icon-warning" aria-hidden="true"></i>
+                      El nombre es obligatorio
+                    </div>
+                  }
+                </div>
+
+                <div class="form-group">
+                  <label for="apellido" class="form-label">
+                    <i class="icon-users" aria-hidden="true"></i>
+                    Apellido *
+                  </label>
+                  <input 
+                    type="text" 
+                    id="apellido" 
+                    formControlName="apellido" 
+                    placeholder="Tu apellido"
+                    class="form-input"
+                    [class.error]="registerForm.get('apellido')?.invalid && registerForm.get('apellido')?.touched">
+                  @if (registerForm.get('apellido')?.invalid && registerForm.get('apellido')?.touched) {
+                    <div class="error-message">
+                      <i class="icon-warning" aria-hidden="true"></i>
+                      El apellido es obligatorio
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Seguridad -->
+            <div class="form-section">
+              <h4 class="section-title">
+                <i class="icon-shield" aria-hidden="true"></i>
+                Seguridad
+              </h4>
+              
+              <div class="form-group">
+                <label for="password" class="form-label">
+                  <i class="icon-lock" aria-hidden="true"></i>
+                  Contraseña *
+                </label>
+                <div class="password-container">
+                  <input 
+                    [type]="showPassword ? 'text' : 'password'" 
+                    id="password" 
+                    formControlName="password" 
+                    placeholder="Mínimo 6 caracteres"
+                    class="form-input"
+                    [class.error]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
+                  <button type="button" class="password-toggle" (click)="togglePasswordVisibility('password')">
+                    <span class="password-toggle-text">{{ showPassword ? 'Ocultar' : 'Mostrar' }}</span>
+                  </button>
+                </div>
+                @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
+                  <div class="error-message">
+                    <i class="icon-warning" aria-hidden="true"></i>
+                    La contraseña debe tener al menos 6 caracteres
+                  </div>
+                }
+                
+                <!-- Indicador de fortaleza de contraseña -->
+                <div class="password-strength">
+                  <div class="strength-bar" [class]="getPasswordStrength()"></div>
+                  <span class="strength-text">{{ getPasswordStrengthText() }}</span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="confirmPassword" class="form-label">
+                  <i class="icon-lock-check" aria-hidden="true"></i>
+                  Confirmar Contraseña *
+                </label>
+                <div class="password-container">
+                  <input 
+                    [type]="showConfirmPassword ? 'text' : 'password'" 
+                    id="confirmPassword" 
+                    formControlName="confirmPassword" 
+                    placeholder="Repetí tu contraseña"
+                    class="form-input"
+                    [class.error]="registerForm.hasError('mismatch') && registerForm.get('confirmPassword')?.touched">
+                  <button type="button" class="password-toggle" (click)="togglePasswordVisibility('confirmPassword')">
+                    <span class="password-toggle-text">{{ showConfirmPassword ? 'Ocultar' : 'Mostrar' }}</span>
+                  </button>
+                </div>
+                @if (registerForm.hasError('mismatch') && registerForm.get('confirmPassword')?.touched) {
+                  <div class="error-message">
+                    <i class="icon-warning" aria-hidden="true"></i>
+                    Las contraseñas no coinciden
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Términos y condiciones -->
+            <div class="form-section">
+              <div class="terms-agreement" *ngIf="!adminMode">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="terms" required>
+                  <span class="checkmark"></span>
+                  <span class="terms-text">
+                    Acepto los 
+                    <a href="#" class="terms-link">Términos de Servicio</a> 
+                    y la 
+                    <a href="#" class="terms-link">Política de Privacidad</a>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Botón de registro -->
+            <button 
+              type="submit" 
+              class="btn btn-primary btn-full btn-large"
+              [disabled]="registerForm.invalid || loading"
+              [class.loading]="loading">
+              <span class="btn-content">
+                @if (!loading) {
+                  <span>
+                    <i class="icon-user-plus" aria-hidden="true"></i>
+                    {{ adminMode ? 'Crear Administrador' : 'Crear Cuenta Premium' }}
+                  </span>
+                }
+                @if (loading) {
+                  <span>
+                    <i class="icon-spinner" aria-hidden="true"></i>
+                    Creando tu cuenta...
+                  </span>
+                }
+              </span>
+            </button>
+
+            <!-- Enlace de login -->
+            <div class="auth-redirect">
+              <p>¿Ya tenés una cuenta? 
+                <a routerLink="/" class="login-link">
+                  <i class="icon-login" aria-hidden="true"></i>
+                  Iniciar Sesión
+                </a>
+              </p>
+            </div>
+          </form>
+        </div>
+
+        <!-- Beneficios de registrarse -->
+        <div class="benefits-sidebar">
+          <div class="benefits-card">
+            <h3 class="benefits-title">Beneficios Exclusivos</h3>
+            <div class="benefits-list">
+              <div class="benefit-item">
+                <div class="benefit-icon">
+                  <i class="icon-star" aria-hidden="true"></i>
+                </div>
+                <div class="benefit-content">
+                  <h4>Acceso Prioritario</h4>
+                  <p>Primer acceso a nuevos vehículos antes del lanzamiento público</p>
+                </div>
+              </div>
+              
+              <div class="benefit-item">
+                <div class="benefit-icon">
+                  <i class="icon-percent" aria-hidden="true"></i>
+                </div>
+                <div class="benefit-content">
+                  <h4>Descuentos Exclusivos</h4>
+                  <p>Ofertas especiales y promociones solo para miembros registrados</p>
+                </div>
+              </div>
+              
+              <div class="benefit-item">
+                <div class="benefit-icon">
+                  <i class="icon-heart" aria-hidden="true"></i>
+                </div>
+                <div class="benefit-content">
+                  <h4>Lista de Deseos</h4>
+                  <p>Guardá tus vehículos favoritos y recibí notificaciones de precio</p>
+                </div>
+              </div>
+              
+              <div class="benefit-item">
+                <div class="benefit-icon">
+                  <i class="icon-bell" aria-hidden="true"></i>
+                </div>
+                <div class="benefit-content">
+                  <h4>Alertas Personalizadas</h4>
+                  <p>Notificaciones cuando lleguen vehículos de tu interés</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="testimonial">
+              <div class="testimonial-content">
+                <p>"Automotores Meyer transformó mi experiencia de compra. Atención personalizada y vehículos impecables."</p>
+                <div class="testimonial-author">
+                  <strong>Martín Rodríguez</strong>
+                  <span>Cliente desde 2023</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer simplificado -->
+  <footer class="footer-minimal">
+    <div class="container">
+      <div class="footer-content">
+        <p>&copy; {{ currentYear }} Automotores Meyer · Amenabar 2469 · Tel: 341 383 8911 · ignacioarielmeyer@gmail.com</p>
+        <div class="footer-links">
+          <a href="#" class="footer-link">Términos</a>
+          <a href="#" class="footer-link">Privacidad</a>
+          <a href="#" class="footer-link">Ayuda</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>

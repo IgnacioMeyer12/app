@@ -1,0 +1,372 @@
+/* ========================================
+   MIS CITAS
+   Diseño profesional con efectos visuales avanzados
+   ======================================== */
+
+:root {
+  --mis-citas-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --mis-citas-card: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+}
+
+.mis-citas-container {
+  min-height: 100vh;
+  background: var(--mis-citas-gradient);
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+  animation: pageEntry 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mis-citas-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.15) 0%, transparent 60%),
+    radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+  animation: glowPulse 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes pageEntry {
+  from {
+    opacity: 0;
+    filter: blur(30px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes glowPulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.mis-citas-container h2 {
+  font-size: 3.5rem;
+  color: #ffffff;
+  text-align: center;
+  margin: 2rem 0 4rem;
+  font-weight: 900;
+  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 10;
+  letter-spacing: -1px;
+  animation: titleEntrance 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes titleEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(-60px) scale(0.9);
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.mis-citas-container h2::after {
+  content: "";
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 3px;
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.5);
+  animation: underlineGrow 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes underlineGrow {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: 120px;
+    opacity: 1;
+  }
+}
+
+.btn {
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-outline {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 10;
+}
+
+.btn-outline::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.6s ease;
+}
+
+.btn-outline:hover::before {
+  left: 100%;
+}
+
+.btn-outline:hover {
+  background: #ffffff;
+  color: #f5576c;
+  transform: translateX(-8px);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2);
+}
+
+.citas-table {
+  width: 100%;
+  max-width: 1400px;
+  margin: 2.5rem auto;
+  background: var(--mis-citas-card);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 15px 60px rgba(0, 0, 0, 0.2);
+  border-collapse: separate;
+  border-spacing: 0;
+  animation: tableReveal 1s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 10;
+}
+
+@keyframes tableReveal {
+  from {
+    opacity: 0;
+    transform: translateY(60px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.citas-table thead {
+  background: var(--mis-citas-gradient);
+  color: #ffffff;
+  position: relative;
+}
+
+.citas-table thead::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+  animation: headerShimmer 4s ease-in-out infinite;
+}
+
+@keyframes headerShimmer {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.citas-table thead th {
+  padding: 1.5rem 1.25rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  position: relative;
+  z-index: 1;
+}
+
+.citas-table tbody tr {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: rowSlideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+
+.citas-table tbody tr:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.citas-table tbody tr:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.citas-table tbody tr:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.citas-table tbody tr:nth-child(4) {
+  animation-delay: 0.25s;
+}
+.citas-table tbody tr:nth-child(5) {
+  animation-delay: 0.3s;
+}
+.citas-table tbody tr:nth-child(6) {
+  animation-delay: 0.35s;
+}
+
+@keyframes rowSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.citas-table tbody tr:hover {
+  background: linear-gradient(90deg, #fff5f7 0%, #ffffff 100%);
+  transform: scale(1.02);
+  box-shadow: 0 8px 25px rgba(245, 87, 108, 0.15);
+}
+
+.citas-table tbody td {
+  padding: 1.5rem 1.25rem;
+  border-bottom: 1px solid #f1f3f5;
+  color: #4a5568;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.citas-table tbody tr:hover td {
+  color: #2d3748;
+}
+
+.citas-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.message {
+  max-width: 700px;
+  margin: 3rem auto;
+  padding: 1.5rem 2rem;
+  border-radius: 16px;
+  text-align: center;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  animation: messageBounce 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 10;
+}
+
+@keyframes messageBounce {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) translateY(50px);
+  }
+  60% {
+    transform: scale(1.08) translateY(-15px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.message.error {
+  background: linear-gradient(135deg, rgba(248, 215, 218, 0.98) 0%, rgba(245, 198, 203, 0.98) 100%);
+  color: #721c24;
+  border: 2px solid #f5c6cb;
+}
+
+.mis-citas-container > div:last-child {
+  text-align: center;
+  color: #ffffff;
+  font-size: 1.5rem;
+  margin: 4rem auto;
+  padding: 3rem;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  max-width: 700px;
+  animation: emptyStatePulse 2s ease-in-out infinite;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  position: relative;
+  z-index: 10;
+  font-weight: 600;
+}
+
+@keyframes emptyStatePulse {
+  0%,
+  100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .citas-table {
+    font-size: 0.9rem;
+  }
+
+  .citas-table thead th,
+  .citas-table tbody td {
+    padding: 1.25rem 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .mis-citas-container {
+    padding: 1.5rem;
+  }
+
+  .mis-citas-container h2 {
+    font-size: 2.5rem;
+  }
+
+  .citas-table {
+    display: block;
+    overflow-x: auto;
+    border-radius: 16px;
+  }
+
+  .citas-table thead th,
+  .citas-table tbody td {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .mis-citas-container h2 {
+    font-size: 2rem;
+  }
+}

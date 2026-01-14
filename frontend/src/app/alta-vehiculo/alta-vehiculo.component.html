@@ -1,0 +1,214 @@
+<div class="alta-vehiculo-container">
+  <div class="alta-vehiculo-card">
+    <button class="btn btn-outline" routerLink="/">← Volver al menú</button>
+    <h2>Alta de Vehículo</h2>
+    
+    <form [formGroup]="vehiculoForm" (ngSubmit)="onSubmit()" class="alta-vehiculo-form">
+      
+
+
+      <!-- Marca -->
+      <div class="form-group">
+        <label for="marca">Marca *</label>
+        <input 
+          type="text" 
+          id="marca" 
+          formControlName="marca"
+          placeholder="Ingrese la marca"
+          [class.error]="isFieldInvalid('marca')">
+        <div class="error-message" *ngIf="isFieldInvalid('marca')">
+          La marca es obligatoria
+        </div>
+      </div>
+
+      <!-- 0KM y Stock -->
+      <div class="form-group inline">
+        <label>
+          <input type="checkbox" [checked]="vehiculoForm.get('es0km')?.value" (change)="toggle0km($event.target.checked)" /> 0 km
+        </label>
+        <div *ngIf="vehiculoForm.get('es0km')?.value" class="stock-field">
+          <label for="stock">Stock (cantidad)</label>
+          <input type="number" id="stock" formControlName="stock" min="1" />
+        </div>
+      </div>
+
+      <!-- Color -->
+      <div class="form-group">
+        <label>Color</label>
+        <div class="color-picker">
+          <button type="button" class="swatch" *ngFor="let c of colorOptions" [style.background]="c" (click)="selectColor(c)" [class.active]="vehiculoForm.get('color')?.value === c"></button>
+        </div>
+      </div>
+
+      <!-- Modelo -->
+      <div class="form-group">
+        <label for="modelo">Modelo *</label>
+        <input 
+          type="text" 
+          id="modelo" 
+          formControlName="modelo"
+          placeholder="Ingrese el modelo"
+          [class.error]="isFieldInvalid('modelo')">
+        <div class="error-message" *ngIf="isFieldInvalid('modelo')">
+          El modelo es obligatorio
+        </div>
+      </div>
+
+      <!-- Año -->
+      <div class="form-group">
+        <label for="anio">Año *</label>
+        <input 
+          type="number" 
+          id="anio" 
+          formControlName="anio"
+          placeholder="Ingrese el año"
+          min="1900"
+          [max]="currentYear + 1"
+          [class.error]="isFieldInvalid('anio')">
+        <div class="error-message" *ngIf="isFieldInvalid('anio')">
+          <span *ngIf="vehiculoForm.get('anio')?.errors?.['required']">
+            El año es obligatorio
+          </span>
+          <span *ngIf="vehiculoForm.get('anio')?.errors?.['min'] || vehiculoForm.get('anio')?.errors?.['max']">
+            El año debe estar entre 1900 y {{currentYear + 1}}
+          </span>
+        </div>
+      </div>
+
+      <!-- Precio -->
+      <div class="form-group">
+        <label for="precio">Precio (€) *</label>
+        <input 
+          type="number" 
+          id="precio" 
+          formControlName="precio"
+          placeholder="Ingrese el precio"
+          min="0"
+          step="0.01"
+          [class.error]="isFieldInvalid('precio')">
+        <div class="error-message" *ngIf="isFieldInvalid('precio')">
+          <span *ngIf="vehiculoForm.get('precio')?.errors?.['required']">
+            El precio es obligatorio
+          </span>
+          <span *ngIf="vehiculoForm.get('precio')?.errors?.['min']">
+            El precio debe ser mayor a 0
+          </span>
+        </div>
+      </div>
+
+      <!-- Kilómetros -->
+      <div class="form-group">
+        <label for="km">Kilómetros *</label>
+        <input 
+          type="number" 
+          id="km" 
+          formControlName="km"
+          placeholder="Ingrese los kilómetros"
+          min="0"
+          [class.error]="isFieldInvalid('km')">
+        <div class="error-message" *ngIf="isFieldInvalid('km')">
+          <span *ngIf="vehiculoForm.get('km')?.errors?.['required']">
+            Los kilómetros son obligatorios
+          </span>
+          <span *ngIf="vehiculoForm.get('km')?.errors?.['min']">
+            Los kilómetros no pueden ser negativos
+          </span>
+        </div>
+      </div>
+
+      <!-- Fotos -->
+      <div class="form-group">
+        <label>Fotos</label>
+
+        <!-- Drag & drop / file upload -->
+        <div class="dropzone" (drop)="onDrop($event)" (dragover)="onDragOver($event)" (paste)="onPaste($event)">
+          <div class="dropzone-inner">
+            <p>Arrastra tus imágenes aquí o haz click para seleccionar (.jpg, .png)</p>
+            <input type="file" accept="image/png,image/jpeg" multiple (change)="onFilesSelected($event)" />
+            <div class="drop-hint">También podés pegar una imagen desde el portapapeles</div>
+          </div>
+        </div>
+
+        <div class="image-list" *ngIf="imageUrls && imageUrls.length">
+          <div class="thumb" *ngFor="let url of imageUrls; let i = index">
+            <img [src]="url" [alt]="'Foto ' + (i + 1)" />
+            <div class="thumb-actions">
+              <button type="button" class="btn-secondary" (click)="removeImage(i)">Eliminar</button>
+              <button type="button" class="btn-primary" (click)="focusImageInput()">Agregar otra</button>
+            </div>
+          </div>
+        </div>
+
+        <small *ngIf="!uploading">Las imágenes se suben al servidor y se asociarán al vehículo</small>
+        <small *ngIf="uploading">Subiendo imágenes...</small>
+      </div>
+
+      <!-- Descripción -->
+      <div class="form-group">
+        <label for="descripcion">Descripción</label>
+        <textarea 
+          id="descripcion" 
+          formControlName="descripcion"
+          placeholder="Ingrese una descripción del vehículo"
+          rows="4"></textarea>
+      </div>
+
+      <!-- Botones -->
+      <div class="form-actions">
+        <button 
+          type="button" 
+          class="btn-primary"
+          (click)="onSubmit()"
+          [disabled]="loading">
+          <span *ngIf="loading">Procesando...</span>
+          <span *ngIf="!loading">Verificar</span>
+        </button>
+        
+        <button 
+          type="button" 
+          class="btn-secondary"
+          (click)="limpiarFormulario()"
+          [disabled]="loading">
+          Limpiar
+        </button>
+      </div>
+    </form>
+
+    <!-- Preview antes de registrar -->
+    <div *ngIf="isVerified && previewVehicle" id="preview" class="preview-vehicle">
+      <h3>Verificar datos</h3>
+      <div class="vehicle-grid">
+        <div class="vehicle-images">
+          <ng-container *ngIf="previewVehicle.fotos && previewVehicle.fotos.length; else noPreviewPhotos">
+            <div class="thumb" *ngFor="let f of previewVehicle.fotos">
+              <img [src]="f" [alt]="previewVehicle.marca + ' ' + previewVehicle.modelo" />
+            </div>
+          </ng-container>
+          <ng-template #noPreviewPhotos>
+            <div class="no-photos">No se agregaron imágenes</div>
+          </ng-template>
+        </div>
+
+        <div class="vehicle-info">
+          <p><strong>Marca:</strong> {{ previewVehicle.marca }}</p>
+          <p><strong>Modelo:</strong> {{ previewVehicle.modelo }}</p>
+          <p><strong>Año:</strong> {{ previewVehicle.anio }}</p>
+          <p><strong>Precio:</strong> {{ formatCurrency(previewVehicle.precio) }}</p>
+          <p><strong>Kilómetros:</strong> {{ previewVehicle.km }}</p>
+          <p><strong>Descripción:</strong> {{ previewVehicle.descripcion || '-' }}</p>
+        </div>
+      </div>
+
+      <div class="created-actions">
+        <button class="btn-primary" (click)="register()" [disabled]="loading">Registrar</button>
+        <button class="btn-secondary" (click)="editar()" [disabled]="loading">Editar</button>
+      </div>
+    </div>
+
+    <!-- Mensajes de éxito/error -->
+    <div *ngIf="message" 
+         [class]="messageType === 'success' ? 'message success' : 'message error'">
+      {{ message }}
+    </div>
+  </div>
+</div>
