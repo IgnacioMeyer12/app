@@ -74,9 +74,10 @@ export class CitasAdminComponent implements OnInit {
     let adminMessage = null;
     if (estado === 'rechazada') {
       adminMessage = prompt('Motivo del rechazo (opcional):');
-      if (adminMessage !== null) {
-        adminMessage = adminMessage.trim() || null;
+      if (adminMessage === null) {
+        return; // Cancelado por el usuario
       }
+      adminMessage = adminMessage.trim() || null;
     }
 
     const body = { 
@@ -85,43 +86,23 @@ export class CitasAdminComponent implements OnInit {
       adminMessage: adminMessage
     };
 
-    // Intentar con PATCH (que ya tienes)
     this.http.patch(`http://localhost:3001/api/citas/${cita.id}`, body)
       .subscribe({
         next: (res: any) => {
+          console.log('✅ Respuesta del servidor:', res);
           if (res && res.success) {
             alert(`✅ Cita ${estado} correctamente`);
-            // Si el servidor devuelve la cita actualizada, actualizarla localmente
-            if (res.cita) {
-              this.actualizarCitaEnLista(res.cita);
-            } else {
-              // Si no, recargar todo
-              this.cargarCitas();
-            }
+            
+            // Recargar todas las citas para asegurar sincronización
+            this.cargarCitas();
           } else {
-            alert(res?.message || 'Error');
+            alert(res?.message || 'Error al actualizar');
           }
         },
-        error: () => {
+        error: (err) => {
+          console.error('❌ Error:', err);
           alert('Error al actualizar la cita');
-          this.cargarCitas();
         }
       });
-  }
-
-  // Actualizar una cita específica en las listas
-  private actualizarCitaEnLista(citaActualizada: any) {
-    const index = this.citas.findIndex(c => c.id === citaActualizada.id);
-    if (index !== -1) {
-      this.citas[index] = citaActualizada;
-    }
-    
-    // Recalcular las listas
-    this.pendientes = this.citas.filter(c => 
-      c.estado && c.estado.toLowerCase() === 'pendiente'
-    );
-    this.contestadas = this.citas.filter(c => 
-      c.estado && c.estado.toLowerCase() !== 'pendiente'
-    );
   }
 }

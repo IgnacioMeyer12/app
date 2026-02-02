@@ -1,45 +1,96 @@
+<!-- CONTENEDOR PRINCIPAL DEL FORMULARIO DE CITA -->
 <div class="cita-container">
+  <!-- BOTÓN VOLVER: Navega a home con routerLink="/" -->
   <button class="btn btn-outline" routerLink="/">← Volver al menú</button>
+  
+  <!-- TÍTULO DE LA PÁGINA -->
   <h2>Solicitar Cita</h2>
 
+  <!-- INDICADOR DE CARGA: Se muestra si loading = true (mientras se cargan datos del servidor) -->
   <div *ngIf="loading">Cargando...</div>
+  
+  <!-- MENSAJE DE ÉXITO O ERROR: 
+       [class] = binding dinámico de clase
+       Si messageType === 'success' → añade clase 'success' (fondo verde)
+       Si messageType === 'error' → añade clase 'error' (fondo rojo)
+       {{ message }} = muestra el contenido de la variable message -->
   <div *ngIf="message" [class]="messageType === 'success' ? 'message success' : 'message error'">{{ message }}</div>
 
+  <!-- SECCIÓN 1: SELECTOR DE VEHÍCULOS -->
   <div class="form-group">
     <label for="vehiculo">Vehículo</label>
+    <!-- [(ngModel)] = two-way binding: cambios en el select ↔ cambios en selectedVehicleId
+         El id="vehiculo" vincula el label con el select -->
     <select id="vehiculo" [(ngModel)]="selectedVehicleId">
+      <!-- Opción por defecto: "-- Selecciona --" con value vacío -->
       <option value="">-- Selecciona --</option>
+      
+      <!-- *ngFor = directiva que repite el <option> para cada vehículo en el array vehicles
+           let v = variable local en este loop (representa cada vehículo)
+           [value] = binding de propiedad: asigna el ID del vehículo al seleccionar
+           {{ }} = interpolación: muestra valores de las propiedades del vehículo -->
       <option *ngFor="let v of vehicles" [value]="v.idVehiculo">{{ v.marca }} {{ v.modelo }} ({{ v.anio }})</option>
     </select>
   </div>
 
+  <!-- SECCIÓN 2: SELECTOR DE FECHA -->
   <div class="form-group">
     <label for="fecha">Fecha</label>
-    <input id="fecha" type="date" [(ngModel)]="fecha" (change)="fetchAvailability(fecha)" />
+    <!-- type="date" = input nativo de HTML5 para seleccionar fecha
+         [(ngModel)]="fecha" = two-way binding con la variable fecha (YYYY-MM-DD)
+         [min]="minFecha" = binding de atributo: no permite fechas anteriores a minFecha
+         (change)="fetchAvailability(fecha)" = event binding: cuando cambia, obtiene horarios disponibles -->
+    <input id="fecha" type="date" [(ngModel)]="fecha" [min]="minFecha" (change)="fetchAvailability(fecha)" />
   </div>
 
+  <!-- SECCIÓN 3: SELECTOR DE HORARIOS DISPONIBLES -->
   <div class="form-group">
     <label>Horarios disponibles</label>
+    <!-- Contenedor con display flex para mostrar botones en fila -->
     <div class="slots">
+      <!-- *ngFor = repite <button> para cada slot (horario disponible)
+           let s = variable local: cada slot es un objeto { time: '09:00', available: true/false }
+           [class.available] = añade clase CSS 'available' si s.available === true
+           [class.booked] = añade clase CSS 'booked' si s.available === false
+           [class.selected] = añade clase CSS 'selected' si selectedSlot === s.time
+           (click)="selectSlot(...)" = cuando hace click, llama a selectSlot() con los parámetros -->
       <button *ngFor="let s of slots" type="button" class="slot" [class.available]="s.available" [class.booked]="!s.available" [class.selected]="selectedSlot === s.time" (click)="selectSlot(s.time, s.available)">
+        <!-- Muestra la hora del slot (ej: "09:00", "10:00") -->
         {{ s.time }}
       </button>
     </div>
+    
+    <!-- LEYENDA: Explica qué significan los colores de los botones -->
     <div class="legend">
+      <!-- Disponible (verde) -->
       <span class="legend-item"><span class="box available"></span> Disponible</span>
+      <!-- Ocupado (rojo/gris) -->
       <span class="legend-item"><span class="box booked"></span> Ocupado</span>
     </div>
   </div>
 
+  <!-- SECCIÓN 4: SELECTOR DE MOTIVO -->
   <div class="form-group">
     <label for="motivo">Motivo</label>
+    <!-- [(ngModel)]="motivo" = two-way binding: cambios en select ↔ cambios en la variable motivo -->
     <select id="motivo" [(ngModel)]="motivo">
+      <!-- *ngFor = repite <option> para cada motivo en el array motivos
+           [value]="m" = asigna el valor del motivo al seleccionar -->
       <option *ngFor="let m of motivos" [value]="m">{{ m }}</option>
     </select>
   </div>
 
+  <!-- SECCIÓN 5: BOTONES DE ACCIÓN -->
   <div class="form-actions">
+    <!-- BOTÓN 1: SOLICITAR CITA
+         (click)="submit()" = event binding: cuando hace click, ejecuta submit()
+         [disabled]="loading" = deshabilita el botón si loading === true
+                              (mientras se está cargando o enviando, no permite hacer click) -->
     <button class="btn-primary" (click)="submit()" [disabled]="loading">Solicitar cita</button>
+    
+    <!-- BOTÓN 2: VOLVER AL CATÁLOGO
+         router.navigate(['/catalogo']) = navega a la ruta /catalogo
+         Es necesario que router sea public en el .ts para usarlo aquí -->
     <button class="btn-secondary" (click)="router.navigate(['/catalogo'])" [disabled]="loading">Volver al catálogo</button>
   </div>
 </div>

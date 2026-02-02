@@ -1,94 +1,178 @@
+/* ============================================================
+   SERVIDOR BACKEND - AUTOMOTORES MEYER
+   ============================================================
+   Archivo principal de la API REST con Express.js
+   
+   FUNCIONALIDADES:
+   - Gestión de vehículos (crear, leer, actualizar, eliminar)
+   - Autenticación de usuarios (registro, login)
+   - Agendamiento de citas
+   - Subida de imágenes (fotos de vehículos)
+   - Base de datos MySQL
+   
+   PUERTO: 3001
+   URL BASE: http://localhost:3001/api/
+   ============================================================ */
+
+/* IMPORTACIONES: Librerías necesarias para el servidor */
+
+/* express: framework para crear el servidor web */
 const express = require('express');
+/* cors: permite que el frontend (localhost:4200) acceda a la API */
 const cors = require('cors');
+/* bcryptjs: encripta contraseñas para mayor seguridad */
 const bcrypt = require('bcryptjs');
+/* mysql2/promise: conecta a la base de datos MySQL con promesas */
 const mysql = require('mysql2/promise');
+/* path: maneja rutas de archivos del sistema */
 const path = require('path');
+/* fs: operaciones con el sistema de archivos */
 const fs = require('fs');
+/* multer: maneja la subida de archivos (imágenes) */
 const multer = require('multer');
+/* dotenv: lee variables de entorno del archivo .env */
 require('dotenv').config();
 
+/* CREAR LA APLICACIÓN EXPRESS */
 const app = express();
 
-// Middlewares
+/* ============================================================
+   MIDDLEWARES: Procesa las peticiones antes de llegar a las rutas
+   ============================================================ */
+
+/* MIDDLEWARE: CORS (Control de Acceso de Origen Cruzado)
+   Permite que el frontend en localhost:4200 acceda a esta API */
 app.use(cors({
-  origin: ['http://localhost:4200', 'http://localhost:3000'],
-  credentials: true
+  origin: ['http://localhost:4200', 'http://localhost:3000'], /* URLs permitidas */
+  credentials: true /* Permite el envío de cookies/credenciales */
 }));
-app.use(express.json({ limit: '10mb' }));
+
+/* MIDDLEWARE: Parsing de JSON
+   Convierte el body de las peticiones (JSON) en objetos JavaScript */
+app.use(express.json({ limit: '10mb' })); /* Máximo 10MB por petición */
+
+/* MIDDLEWARE: Parsing de URL-encoded
+   Para formularios tradicionales HTML */
 app.use(express.urlencoded({ extended: true }));
 
-// Configuración para subida de archivos
+/* ============================================================
+   CONFIGURACIÓN DE SUBIDA DE ARCHIVOS (MULTER)
+   ============================================================ */
+
+/* Crear carpeta de uploads si no existe */
 const uploadsDir = path.join(__dirname, '..', 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+/* CONFIGURACIÓN DE ALMACENAMIENTO
+   Define dónde y cómo guardar los archivos subidos */
 const storage = multer.diskStorage({
+  /* destination: carpeta donde guardar los archivos */
   destination: function (req, file, cb) {
     cb(null, uploadsDir);
   },
+  /* filename: nombre del archivo guardado */
   filename: function (req, file, cb) {
+    /* Crear nombre único: timestamp + número aleatorio + extensión original */
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname);
     cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
   }
 });
 
+/* FILTRO DE ARCHIVOS
+   Solo permite subir imágenes */
 function fileFilter(req, file, cb) {
+  /* Verificar si el MIME type es una imagen */
   if (file.mimetype && file.mimetype.startsWith('image/')) {
-    cb(null, true);
+    cb(null, true); /* Aceptar archivo */
   } else {
+    /* Rechazar archivo no válido */
     cb(new Error('Tipo de archivo inválido. Solo se permiten imágenes.'), false);
   }
 }
 
-const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
+/* CREAR EL MANEJADOR DE UPLOAD
+   - storage: configuración de dónde guardar
+   - fileFilter: validación de tipos de archivo
+   - limits: límites de tamaño de archivo (5MB máximo) */
+const upload = multer({ 
+  storage, 
+  fileFilter, 
+  limits: { fileSize: 5 * 1024 * 1024 } 
+});
 
-// Servir archivos estáticos subidos
+/* SERVIR ARCHIVOS ESTÁTICOS
+   Los archivos en /public/uploads/ se pueden acceder vía /uploads/ */
 app.use('/uploads', express.static(uploadsDir));
 
-// Ruta para subir archivos
+/* RUTA: POST /api/upload
+   Permite subir múltiples imágenes (máximo 10) */
 app.post('/api/upload', upload.array('files', 10), (req, res) => {
   try {
+    /* Verificar que se recibieron archivos */
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ success: false, message: 'No se recibieron archivos' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No se recibieron archivos' 
+      });
     }
 
+    /* Mapear los archivos subidos a URLs accesibles */
     const uploadedFiles = req.files.map(f => {
       return `${req.protocol}://${req.get('host')}/uploads/${f.filename}`;
     });
 
-    res.json({ success: true, files: uploadedFiles });
+    /* Responder con las URLs de los archivos subidos */
+    res.json({ 
+      success: true, 
+      files: uploadedFiles 
+    });
   } catch (err) {
     console.error('Error en /api/upload:', err);
-    res.status(500).json({ success: false, message: 'Error subiendo archivos' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error subiendo archivos' 
+    });
   }
 });
 
-// Configuración de base de datos
+/* ============================================================
+   CONFIGURACIÓN DE BASE DE DATOS
+   ============================================================ */
+
+/* OBJETO DE CONFIGURACIÓN
+   Parámetros para conectarse a MySQL */
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'altagama_db',
-  connectionLimit: 10,
-  connectTimeout: 60000,
-  acquireTimeout: 60000,
-  timeout: 60000,
-  reconnect: false
+  host: process.env.DB_HOST || 'localhost',      /* Servidor MySQL */
+  port: process.env.DB_PORT || 3306,             /* Puerto MySQL */
+  user: process.env.DB_USER || 'root',           /* Usuario MySQL */
+  password: process.env.DB_PASSWORD || '',       /* Contraseña MySQL */
+  database: process.env.DB_NAME || 'altagama_db',/* Base de datos */
+  connectionLimit: 10,                            /* Máximo 10 conexiones simultáneas */
+  connectTimeout: 60000,                          /* Timeout de conexión: 60 segundos */
+  acquireTimeout: 60000,                          /* Timeout para obtener conexión: 60s */
+  timeout: 60000,                                 /* Timeout general: 60 segundos */
+  reconnect: false                                /* No reconectar automáticamente */
 };
 
-// Pool de conexiones
+/* VARIABLE GLOBAL: Pool de conexiones
+   Un pool es un conjunto reutilizable de conexiones a la BD */
 let pool;
 
+/* FUNCIÓN: Crear el pool de conexiones
+   Establece la conexión con la base de datos */
 async function createPool() {
+  /* Crear el pool con la configuración */
   pool = mysql.createPool(dbConfig);
   
+  /* EVENTO: Cuando se abre una nueva conexión */
   pool.on('connection', (connection) => {
     console.log('Nueva conexión MySQL establecida');
   });
   
+  /* EVENTO: Cuando hay error en el pool */
   pool.on('error', (err) => {
     console.error('Error en el pool de MySQL:', err);
   });
@@ -96,13 +180,16 @@ async function createPool() {
   return pool;
 }
 
-// Función para conectar a la base de datos
+/* FUNCIÓN: Obtener una conexión del pool
+   Se usa para ejecutar queries a la BD */
 async function connectDB() {
+  /* Si el pool no existe, crearlo */
   if (!pool) {
     pool = await createPool();
   }
   
   try {
+    /* Obtener una conexión del pool */
     const connection = await pool.getConnection();
     console.log('Conexión a MySQL obtenida del pool');
     return connection;
@@ -112,9 +199,16 @@ async function connectDB() {
   }
 }
 
-// Middleware para manejar solicitudes HTML
+/* ============================================================
+   MIDDLEWARE: Manejo de peticiones HTML
+   ============================================================ */
+
+/* MIDDLEWARE: Rechazar peticiones de archivos HTML
+   Evita errores cuando alguien intenta acceder a .html en la API */
 app.use((req, res, next) => {
+  /* Si la ruta termina con .html y no es /api/ */
   if (req.path.endsWith('.html') && !req.path.startsWith('/api/')) {
+    /* Responder con error explicativo */
     return res.status(404).json({
       error: 'html_file_not_found',
       message: 'El archivo HTML no está disponible en el servidor de API',
@@ -123,38 +217,45 @@ app.use((req, res, next) => {
       api_docs: `${req.protocol}://${req.get('host')}/api/health`
     });
   }
-  next();
+  next(); /* Continuar con la siguiente ruta/middleware */
 });
 
-// Crear todas las tablas necesarias
+/* ============================================================
+   INICIALIZACIÓN DE TABLAS DE BASE DE DATOS
+   ============================================================ */
+
+/* FUNCIÓN: Crear todas las tablas necesarias
+   Se ejecuta cuando el servidor arranca */
 async function createTables() {
   const connection = await connectDB();
   
   try {
-    // Tabla usuarios
+    /* TABLA: usuarios
+       Almacena los datos de clientes y administradores */
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS usuarios (
-        dni VARCHAR(20) PRIMARY KEY,
-        nombre VARCHAR(100) NOT NULL,
-        apellido VARCHAR(100) NOT NULL,
-        telefono VARCHAR(20) NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        rol ENUM('admin', 'cliente') DEFAULT 'cliente',
-        activo BOOLEAN DEFAULT TRUE,
-        fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY unique_telefono (telefono)
+        dni VARCHAR(20) PRIMARY KEY,           /* ID único: DNI del usuario */
+        nombre VARCHAR(100) NOT NULL,          /* Nombre del usuario */
+        apellido VARCHAR(100) NOT NULL,        /* Apellido del usuario */
+        telefono VARCHAR(20) NOT NULL,         /* Teléfono de contacto */
+        password VARCHAR(255) NOT NULL,        /* Contraseña encriptada */
+        rol ENUM('admin', 'cliente') DEFAULT 'cliente', /* Rol: admin o cliente */
+        activo BOOLEAN DEFAULT TRUE,           /* Si el usuario está activo */
+        fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP, /* Fecha de registro */
+        UNIQUE KEY unique_telefono (telefono)  /* Teléfono único (no puede repetirse) */
       )
     `);
     
-    // Crear usuario admin por defecto si no existe
-    const adminPassword = await bcrypt.hash('admin123', 10);
+    /* CREAR USUARIO ADMIN POR DEFECTO
+       Si no existe, crear un administrador con credenciales por defecto */
+    const adminPassword = await bcrypt.hash('admin123', 10); /* Encriptar contraseña */
     await connection.execute(`
       INSERT IGNORE INTO usuarios (dni, nombre, apellido, telefono, password, rol) 
       VALUES ('12345678', 'Administrador', 'Sistema', '3411234567', ?, 'admin')
     `, [adminPassword]);
 
-    // Crear usuario cliente de prueba si no existe
-    const clientPassword = await bcrypt.hash('cliente123', 10);
+    /* CREAR USUARIO CLIENTE DE PRUEBA */
+    const clientPassword = await bcrypt.hash('cliente123', 10); /* Encriptar contraseña */
     await connection.execute(`
       INSERT IGNORE INTO usuarios (dni, nombre, apellido, telefono, password, rol) 
       VALUES ('87654321', 'Juan', 'Perez', '3417654321', ?, 'cliente')
@@ -165,32 +266,36 @@ async function createTables() {
   } catch (error) {
     console.error('❌ Error creando tablas:', error);
   } finally {
-    connection.release();
+    connection.release(); /* Devolver la conexión al pool */
   }
 }
 
-// ============== RUTAS DE VEHÍCULOS ==============
+/* ============================================================
+   RUTAS: GESTIÓN DE VEHÍCULOS
+   ============================================================ */
 
-// Crear tabla de vehículos
+/* FUNCIÓN: Crear tabla de vehículos */
 async function createVehiclesTable() {
   const connection = await connectDB();
   
   try {
+    /* TABLA: vehiculos
+       Almacena la información de los autos disponibles */
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS vehiculos (
-        idVehiculo VARCHAR(50) PRIMARY KEY,
-        marca VARCHAR(100) NOT NULL,
-        modelo VARCHAR(100) NOT NULL,
-        anio INT NOT NULL,
-        precio DECIMAL(12,2) NOT NULL,
-        km INT NOT NULL,
-        stock INT DEFAULT 1,
-        color VARCHAR(30) DEFAULT NULL,
-        fotos JSON,
-        descripcion TEXT,
-        activo BOOLEAN DEFAULT TRUE,
-        fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        idVehiculo VARCHAR(50) PRIMARY KEY,    /* ID único del vehículo */
+        marca VARCHAR(100) NOT NULL,           /* Marca (ej: Toyota, Ford) */
+        modelo VARCHAR(100) NOT NULL,          /* Modelo (ej: Corolla, Focus) */
+        anio INT NOT NULL,                     /* Año de fabricación */
+        precio DECIMAL(12,2) NOT NULL,         /* Precio en pesos */
+        km INT NOT NULL,                       /* Kilómetros */
+        stock INT DEFAULT 1,                   /* Cantidad disponible */
+        color VARCHAR(30) DEFAULT NULL,        /* Color del vehículo */
+        fotos JSON,                            /* URLs de fotos en formato JSON */
+        descripcion TEXT,                      /* Descripción detallada */
+        activo BOOLEAN DEFAULT TRUE,           /* Si está disponible para venta */
+        fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP, /* Cuándo se agregó */
+        fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP /* Última modificación */
       )
     `);
     
@@ -203,45 +308,27 @@ async function createVehiclesTable() {
   }
 }
 
-// Crear tabla de citas
+/* FUNCIÓN: Crear tabla de citas
+   Almacena todas las citas agendadas */
 async function createCitasTable() {
   const connection = await connectDB();
   try {
+    /* TABLA: citas
+       Información de citas de clientes */
     await connection.execute(`
- CREATE TABLE IF NOT EXISTS citas (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        dni VARCHAR(20) NOT NULL,
-        idVehiculo VARCHAR(50) DEFAULT NULL,
-        fecha_hora DATETIME NOT NULL,
-        motivo VARCHAR(255) NOT NULL,
-        estado ENUM('pendiente', 'aceptada', 'rechazada') DEFAULT 'pendiente',
-        admin_dni VARCHAR(20) DEFAULT NULL,
-        admin_message TEXT DEFAULT NULL,
-        creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        actualizado_en TIMESTAMP NULL DEFAULT NULL
+      CREATE TABLE IF NOT EXISTS citas (
+        id INT AUTO_INCREMENT PRIMARY KEY,     /* ID único de la cita */
+        dni VARCHAR(20) NOT NULL,              /* DNI del cliente que agendó */
+        idVehiculo VARCHAR(50) DEFAULT NULL,   /* ID del vehículo (opcional) */
+        fecha_hora DATETIME NOT NULL,          /* Fecha y hora de la cita */
+        motivo VARCHAR(255) NOT NULL,          /* Razón de la cita (ej: consulta) */
+        estado VARCHAR(50) DEFAULT 'pendiente', /* Estado: pendiente, aceptada, rechazada */
+        admin_dni VARCHAR(20) DEFAULT NULL,    /* DNI del admin que respondió */
+        admin_message TEXT DEFAULT NULL,       /* Mensaje del admin */
+        creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP, /* Cuándo se creó */
+        actualizado_en TIMESTAMP NULL DEFAULT NULL    /* Cuándo se actualizó */
       )
     `);
-
-    // Asegurar compatibilidad: si la tabla existía con estados previos, migrar valores conocidos
-    try {
-      // Mapear valores antiguos a nuevos (si existen)
-      await connection.execute("UPDATE citas SET estado = 'rechazada' WHERE estado = 'cancelada'");
-      await connection.execute("UPDATE citas SET estado = 'aceptada' WHERE estado = 'completada'");
-    } catch (merr) {
-      // si falla, no bloqueamos la aplicación; registrar y continuar
-      console.warn('Aviso migración estados citas:', merr.message || merr);
-    }
-
-    // Agregar columnas si no existen (para instalaciones previas)
-    try {
-      await connection.execute("ALTER TABLE citas ADD COLUMN IF NOT EXISTS admin_dni VARCHAR(20) DEFAULT NULL");
-      await connection.execute("ALTER TABLE citas ADD COLUMN IF NOT EXISTS admin_message TEXT DEFAULT NULL");
-      await connection.execute("ALTER TABLE citas ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMP NULL DEFAULT NULL");
-    } catch (aerr) {
-      // MySQL antiguas versiones no soportan IF NOT EXISTS en ADD COLUMN; ignorar errores si ya existen
-      // En caso de error, solo registrar
-      console.warn('Aviso alter table citas (posible columna existente):', aerr.message || aerr);
-    }
 
     console.log('✅ Tabla de citas creada/verificada exitosamente');
   } catch (error) {
@@ -251,58 +338,39 @@ async function createCitasTable() {
   }
 }
 
-// Crear tabla de vehículos generados (semillas separadas de la tabla principal)
-async function createGeneratedVehiclesTable() {
-  const connection = await connectDB();
-
-  try {
-    await connection.execute(`
-      CREATE TABLE IF NOT EXISTS vehiculos_generados (
-        idVehiculo VARCHAR(50) PRIMARY KEY,
-        marca VARCHAR(100) NOT NULL,
-        modelo VARCHAR(100) NOT NULL,
-        anio INT NOT NULL,
-        precio DECIMAL(12,2) NOT NULL,
-        km INT NOT NULL,
-        fotos JSON,
-        descripcion TEXT,
-        activo BOOLEAN DEFAULT TRUE,
-        fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // No insertar semillas: la tabla se crea vacía por petición del cliente
-    console.log('✅ Tabla vehiculos_generados creada (vacía)');
-  } catch (error) {
-    console.error('❌ Error creando tabla vehiculos_generados:', error);
-  } finally {
-    connection.release();
-  }
-}
-
-// Middleware para verificar admin
+/* MIDDLEWARE: Verificar que el usuario sea administrador
+   Se usa para proteger rutas que solo los admins pueden acceder */
 function requireAdmin(req, res, next) {
-  // En una app real, aquí verificarías el token JWT
-  // Por ahora, asumimos que el usuario está en la sesión
-  const user = req.user; // Deberías implementar autenticación JWT
+  /* En una aplicación real, aquí verificarías un token JWT
+     Por ahora, suponemos que el usuario está autenticado */
+  const user = req.user;
+  /* Si no hay usuario o no es admin, denegar acceso */
   if (!user || user.rol !== 'admin') {
     return res.status(403).json({ 
       success: false,
       message: 'Acceso denegado. Se requiere rol de administrador.' 
     });
   }
-  next();
+  next(); /* Continuar si es admin */
 }
 
-// Alta de vehículo
+/* ENDPOINT: POST /api/vehiculos
+   =============================
+   Crea un nuevo vehículo en la base de datos
+   AUTENTICACIÓN: Solo el admin puede agregar vehículos
+   BODY: { marca, modelo, anio, precio, km, fotos, descripcion } */
 app.post('/api/vehiculos', async (req, res) => {
+  /* DESESTRUCTURACIÓN: Obtener datos del body de la petición */
   let { idVehiculo, marca, modelo, anio, precio, km, fotos, descripcion, stock, color, es0km } = req.body;
 
-  // Generar un idVehiculo automático si el frontend no lo envía
+  /* Si el frontend no envía ID, generar uno automático */
   if (!idVehiculo) {
     idVehiculo = `veh_${Date.now()}_${Math.floor(Math.random() * 900) + 100}`;
   }
 
+  /* VALIDACIONES: Verificar que los datos obligatorios sean válidos */
+  
+  /* Verificar campos requeridos */
   if (!marca || !modelo || !anio || !precio || km === undefined || km === null) {
     return res.status(400).json({ 
       success: false,
@@ -310,11 +378,15 @@ app.post('/api/vehiculos', async (req, res) => {
     });
   }
   
-  // Si es 0km, stock debe ser mayor a 0
+  /* Si es vehículo 0km, debe tener stock */
   if (es0km && (!stock || stock <= 0)) {
-    return res.status(400).json({ success: false, message: 'Stock requerido para vehículos 0 km' });
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Stock requerido para vehículos 0 km' 
+    });
   }
 
+  /* Validar que el año sea realista */
   if (anio < 1900 || anio > new Date().getFullYear() + 1) {
     return res.status(400).json({ 
       success: false,
@@ -322,6 +394,7 @@ app.post('/api/vehiculos', async (req, res) => {
     });
   }
 
+  /* Validar que el precio sea positivo */
   if (precio <= 0) {
     return res.status(400).json({ 
       success: false,
@@ -329,6 +402,7 @@ app.post('/api/vehiculos', async (req, res) => {
     });
   }
 
+  /* Validar que el kilometraje no sea negativo */
   if (km < 0) {
     return res.status(400).json({ 
       success: false,
@@ -376,33 +450,70 @@ app.post('/api/vehiculos', async (req, res) => {
     if (connection) connection.release();
   }
 });
-
-// Obtener todos los vehículos
+/* ENDPOINT: GET /api/vehiculos
+   ============================
+   Obtiene la lista de todos los vehículos activos de la base de datos
+   Retorna: { success: true, vehiculos: [...] } */
 app.get('/api/vehiculos', async (req, res) => {
+  /* Obtener conexión del pool */
   const connection = await connectDB();
   
   try {
+    /* QUERY: SELECT * de vehículos donde activo=TRUE, ordenado por más reciente */
     const [vehicles] = await connection.execute(
       'SELECT * FROM vehiculos WHERE activo = TRUE ORDER BY fecha_creacion DESC'
     );
     
-    // Parsear las fotos de JSON
+    /* PARSEAR FOTOS: El campo fotos está en JSON, convertir a objeto JavaScript */
     const vehiclesWithParsedPhotos = vehicles.map(vehicle => ({
-      ...vehicle,
-      fotos: vehicle.fotos ? JSON.parse(vehicle.fotos) : [],
-      color: vehicle.color,
-      stock: vehicle.stock
+      ...vehicle, /* Copiar todos los campos del vehículo */
+      fotos: vehicle.fotos ? JSON.parse(vehicle.fotos) : [], /* Parsear JSON o array vacío */
+      color: vehicle.color, /* Asegurar que color esté */
+      stock: vehicle.stock   /* Asegurar que stock esté */
     }));
     
+    /* RESPONDER CON SUCCESS Y VEHÍCULOS */
     res.json({ 
       success: true,
       vehiculos: vehiclesWithParsedPhotos
     });
     
   } catch (error) {
+    /* Si hay error en la base de datos */
     console.error('Error obteniendo vehículos:', error);
     res.status(500).json({ 
       success: false,
+      message: 'Error del servidor' 
+    });
+  } finally {
+    /* SIEMPRE devolver la conexión al pool */
+    if (connection) connection.release();
+  }
+});
+
+/* ENDPOINT: GET /api/vehiculos-generados
+   =======================================
+   Obtiene vehículos de la tabla de "semillas" (vehículos generados automáticamente) */
+app.get('/api/vehiculos-generados', async (req, res) => {
+  const connection = await connectDB();
+  try {
+    /* Query: obtener todos los vehículos generados activos */
+    const [vehicles] = await connection.execute(
+      'SELECT * FROM vehiculos_generados WHERE activo = TRUE ORDER BY fecha_creacion DESC'
+    );
+    /* Parsear fotos de JSON */
+    const vehiclesWithParsedPhotos = vehicles.map(vehicle => ({
+      ...vehicle,
+      fotos: vehicle.fotos ? JSON.parse(vehicle.fotos) : []
+    }));
+    res.json({ 
+      success: true, 
+      vehiculos: vehiclesWithParsedPhotos 
+    });
+  } catch (error) {
+    console.error('Error obteniendo vehiculos_generados:', error);
+    res.status(500).json({ 
+      success: false, 
       message: 'Error del servidor' 
     });
   } finally {
@@ -410,73 +521,103 @@ app.get('/api/vehiculos', async (req, res) => {
   }
 });
 
-// Obtener vehículos generados (semillas)
-app.get('/api/vehiculos-generados', async (req, res) => {
-  const connection = await connectDB();
-  try {
-    const [vehicles] = await connection.execute('SELECT * FROM vehiculos_generados WHERE activo = TRUE ORDER BY fecha_creacion DESC');
-    const vehiclesWithParsedPhotos = vehicles.map(vehicle => ({
-      ...vehicle,
-      fotos: vehicle.fotos ? JSON.parse(vehicle.fotos) : []
-    }));
-    res.json({ success: true, vehiculos: vehiclesWithParsedPhotos });
-  } catch (error) {
-    console.error('Error obteniendo vehiculos_generados:', error);
-    res.status(500).json({ success: false, message: 'Error del servidor' });
-  } finally {
-    if (connection) connection.release();
-  }
-});
-
 // Crear cita (idVehiculo ahora es opcional)
+
+/* ENDPOINT: POST /api/citas
+   =========================
+   Crea una nueva cita en la base de datos
+   El usuario (cliente) agenda una cita para una fecha y hora específica
+   
+   BODY: {
+     dni: string (DNI del cliente),
+     idVehiculo: string (opcional, ID del vehículo),
+     fecha: string (YYYY-MM-DD),
+     hora: string (HH:MM),
+     motivo: string (razón de la cita)
+   }
+   
+   RESPONDE: { success: true, message: "Cita agendada" } */
 app.post('/api/citas', async (req, res) => {
+  /* DESESTRUCTURACIÓN: Extraer datos del body */
   const { dni, idVehiculo, fecha, hora, motivo } = req.body;
 
+  /* VALIDACIONES: Verificar que todos los campos requeridos estén presentes */
   if (!dni || !fecha || !hora || !motivo) {
-    return res.status(400).json({ success: false, message: 'Todos los campos obligatorios (dni, fecha, hora, motivo) deben ser completados' });
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Todos los campos obligatorios (dni, fecha, hora, motivo) deben ser completados' 
+    });
   }
 
-  // Combinar fecha y hora
+  /* COMBINAR FECHA Y HORA en formato: "YYYY-MM-DD HH:MM:SS" */
   const fechaHoraStr = `${fecha} ${hora}:00`;
   const fechaHora = new Date(fechaHoraStr);
+  /* Verificar que la fecha sea válida */
   if (isNaN(fechaHora.getTime())) {
-    return res.status(400).json({ success: false, message: 'Fecha u hora inválida' });
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Fecha u hora inválida' 
+    });
   }
 
-  const day = fechaHora.getDay(); // 0=Sun,6=Sat
+  /* VALIDACIÓN: Solo de lunes a viernes
+     getDay() retorna: 0=domingo, 1=lunes,..., 6=sábado */
+  const day = fechaHora.getDay();
   if (day === 0 || day === 6) {
-    return res.status(400).json({ success: false, message: 'Las citas solo se pueden agendar de lunes a viernes' });
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Las citas solo se pueden agendar de lunes a viernes' 
+    });
   }
 
+  /* VALIDACIÓN: Horarios permitidos
+     09:00-13:00 (mañana) y 15:00-18:00 (tarde) */
   const hour = fechaHora.getHours();
   const minute = fechaHora.getMinutes();
-
-  const allowed = (hour >= 9 && (hour < 13 || (hour === 13 && minute === 0))) || (hour >= 15 && (hour < 18 || (hour === 18 && minute === 0)));
+  /* Verificar si está en los horarios permitidos */
+  const allowed = (hour >= 9 && (hour < 13 || (hour === 13 && minute === 0))) || 
+                  (hour >= 15 && (hour < 18 || (hour === 18 && minute === 0)));
 
   if (!allowed) {
-    return res.status(400).json({ success: false, message: 'Horario inválido. Disponibles: 09:00-13:00 y 15:00-18:00' });
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Horario inválido. Disponibles: 09:00-13:00 y 15:00-18:00' 
+    });
   }
 
+  /* Obtener conexión a la base de datos */
   const connection = await connectDB();
 
   try {
-    // Verificar usuario
-    const [users] = await connection.execute('SELECT dni FROM usuarios WHERE dni = ?', [dni]);
+    /* VERIFICACIÓN 1: Usuario debe existir en la BD */
+    const [users] = await connection.execute(
+      'SELECT dni FROM usuarios WHERE dni = ?', 
+      [dni]
+    );
     if (users.length === 0) {
-      return res.status(400).json({ success: false, message: 'Usuario no encontrado' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Usuario no encontrado' 
+      });
     }
 
-    // Si se envió idVehiculo, verificar que exista y esté activo
+    /* VERIFICACIÓN 2: Si especificó vehículo, debe existir y estar activo */
     if (idVehiculo) {
-      const [vehicles] = await connection.execute('SELECT idVehiculo, activo FROM vehiculos WHERE idVehiculo = ?', [idVehiculo]);
+      const [vehicles] = await connection.execute(
+        'SELECT idVehiculo, activo FROM vehiculos WHERE idVehiculo = ?', 
+        [idVehiculo]
+      );
       if (vehicles.length === 0 || !vehicles[0].activo) {
-        return res.status(400).json({ success: false, message: 'Vehículo no disponible' });
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Vehículo no disponible' 
+        });
       }
     }
 
-    // Evitar colisiones:
-    // - Si se indicó vehículo: bloquear solo si el mismo vehículo ya tiene cita en ese horario
-    // - Si NO se indicó vehículo: bloquear si ya existe cualquier cita en ese horario (capacidad por slot = 1)
+    /* VERIFICACIÓN 3: Comprobar que el horario no esté ya ocupado
+       - Si hay vehículo: no pueden haber dos citas del mismo vehículo en la misma hora
+       - Si no hay vehículo: no pueden haber dos citas en el mismo horario (capacidad = 1) */
     const existingQuery = idVehiculo ?
       'SELECT id FROM citas WHERE idVehiculo = ? AND fecha_hora = ?' :
       'SELECT id FROM citas WHERE fecha_hora = ?';
@@ -484,59 +625,114 @@ app.post('/api/citas', async (req, res) => {
 
     const [existing] = await connection.execute(existingQuery, existingParams);
     if (existing.length > 0) {
-      return res.status(409).json({ success: false, message: 'El horario seleccionado ya está ocupado' });
+      return res.status(409).json({ 
+        success: false, 
+        message: 'El horario seleccionado ya está ocupado' 
+      });
     }
 
-    // Insertar cita
-    await connection.execute('INSERT INTO citas (dni, idVehiculo, fecha_hora, motivo) VALUES (?, ?, ?, ?)', [dni, idVehiculo || null, fechaHoraStr, motivo]);
+    /* INSERTAR LA CITA en la base de datos */
+    await connection.execute(
+      'INSERT INTO citas (dni, idVehiculo, fecha_hora, motivo) VALUES (?, ?, ?, ?)', 
+      [dni, idVehiculo || null, fechaHoraStr, motivo]
+    );
 
-    res.status(201).json({ success: true, message: 'Cita agendada' });
+    /* RESPONDER CON ÉXITO */
+    res.status(201).json({ 
+      success: true, 
+      message: 'Cita agendada' 
+    });
 
   } catch (err) {
     console.error('Error creando cita:', err);
-    res.status(500).json({ success: false, message: 'Error del servidor' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error del servidor' 
+    });
   } finally {
     if (connection) connection.release();
   }
 });
 
-// Obtener disponibilidad por fecha (slots horarios)
+/* ENDPOINT: GET /api/citas/availability
+   ======================================
+   Obtiene los horarios disponibles (slots) para una fecha específica
+   El frontend lo usa para mostrar qué horas están libres
+   
+   QUERY PARAMETERS:
+   - date: YYYY-MM-DD (requerido)
+   - idVehiculo: string (opcional)
+   
+   RESPONDE: { success: true, slots: [
+     { time: "09:00", available: true },
+     { time: "10:00", available: false },
+     ...
+   ]} */
 app.get('/api/citas/availability', async (req, res) => {
-  const date = req.query.date; // expected YYYY-MM-DD
-  const idVehiculo = req.query.idVehiculo;
+  /* Obtener parámetros de la URL */
+  const date = req.query.date; /* Fecha en formato YYYY-MM-DD */
+  const idVehiculo = req.query.idVehiculo; /* Vehículo (opcional) */
 
+  /* VALIDACIÓN: La fecha es requerida */
   if (!date) {
-    return res.status(400).json({ success: false, message: 'Se requiere el parámetro date (YYYY-MM-DD)' });
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Se requiere el parámetro date (YYYY-MM-DD)' 
+    });
   }
 
-  // Validate basic date format
+  /* VALIDACIÓN: Formato de fecha debe ser correcto (YYYY-MM-DD) */
   if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)) {
-    return res.status(400).json({ success: false, message: 'Formato de fecha inválido. Use YYYY-MM-DD' });
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Formato de fecha inválido. Use YYYY-MM-DD' 
+    });
   }
 
-  // Allowed slots: hourly slots 09:00,10:00,11:00,12:00 and 15:00,16:00,17:00
+  /* SLOTS DISPONIBLES: Las horas en las que se pueden agendar citas
+     Mañana: 09:00, 10:00, 11:00, 12:00
+     Tarde: 15:00, 16:00, 17:00 */
   const slots = ['09:00','10:00','11:00','12:00','15:00','16:00','17:00'];
   const connection = await connectDB();
 
   try {
+    /* Procesar cada slot para ver si está disponible */
     const result = [];
     for (const t of slots) {
+      /* Crear fecha y hora en formato: "2024-01-15 09:00:00" */
       const fechaHoraStr = `${date} ${t}:00`;
+      /* Query: contar citas que coinciden con esta fecha y hora */
       let sql = 'SELECT COUNT(*) as cnt FROM citas WHERE fecha_hora = ?';
       const params = [fechaHoraStr];
+      
+      /* Si se especificó vehículo, filtrar por vehículo */
       if (idVehiculo) {
-        sql = 'SELECT COUNT(*) as cnt FROM citas WHERE idVehiculo = ? AND fecha_hora = ?';
-        params.unshift(idVehiculo);
+        sql += ' AND idVehiculo = ?';
+        params.push(idVehiculo);
       }
+
+      /* Ejecutar query */
       const [rows] = await connection.execute(sql, params);
-      const cnt = rows[0] ? rows[0].cnt : 0;
-      result.push({ time: t, available: cnt === 0 });
+      /* Si la cuenta es 0, el slot está disponible; si > 0, está ocupado */
+      const cnt = rows[0].cnt;
+      result.push({ 
+        time: t, 
+        available: cnt === 0 /* true si no hay citas, false si hay */
+      });
     }
 
-    res.json({ success: true, date, slots: result });
-  } catch (err) {
-    console.error('Error obteniendo disponibilidad:', err);
-    res.status(500).json({ success: false, message: 'Error del servidor' });
+    /* Responder con los slots y su disponibilidad */
+    res.json({ 
+      success: true, 
+      slots: result 
+    });
+
+  } catch (error) {
+    console.error('Error obteniendo disponibilidad:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error del servidor' 
+    });
   } finally {
     if (connection) connection.release();
   }
@@ -817,12 +1013,29 @@ app.put('/api/citas/:id', async (req, res) => {
 // ============== RUTAS DE USUARIOS ==============
 
 // Registro de usuario
+
+/* ENDPOINT: POST /api/register
+   ============================
+   Registra un nuevo usuario (cliente o admin)
+   
+   BODY: {
+     dni: string (DNI único del usuario),
+     nombre: string,
+     apellido: string,
+     telefono: string (debe ser único),
+     password: string (mínimo 6 caracteres),
+     rol: "cliente" o "admin" (opcional, default es "cliente")
+   }
+   
+   RESPONDE: { success: true, message: "Usuario registrado" } */
 app.post('/api/register', async (req, res) => {
+  /* DESESTRUCTURACIÓN: Obtener datos del body */
   const { dni, nombre, apellido, telefono, password, rol } = req.body;
 
-  // Log minimal payload for debugging (no password)
-  console.log('POST /api/register payload:', { dni, nombre, apellido, telefono, rol, creatorDni });
+  /* Log para debugging (sin contraseña por seguridad) */
+  console.log('POST /api/register payload:', { dni, nombre, apellido, telefono, rol });
 
+  /* VALIDACIONES: Verificar que todos los campos obligatorios estén presentes */
   if (!dni || !nombre || !apellido || !telefono || !password) {
     return res.status(400).json({ 
       success: false,
@@ -830,6 +1043,7 @@ app.post('/api/register', async (req, res) => {
     });
   }
   
+  /* VALIDACIÓN: Contraseña debe tener al menos 6 caracteres */
   if (password.length < 6) {
     return res.status(400).json({ 
       success: false,
@@ -837,6 +1051,7 @@ app.post('/api/register', async (req, res) => {
     });
   }
   
+  /* VALIDACIÓN: Rol debe ser válido ("admin" o "cliente") */
   if (rol && !['admin', 'cliente'].includes(rol)) {
     return res.status(400).json({ 
       success: false,
@@ -844,25 +1059,38 @@ app.post('/api/register', async (req, res) => {
     });
   }
 
-  // Soporte creación de admins desde el formulario cuando viene creatorDni
+  /* SOPORTE: Crear admin desde el formulario si viene creatorDni
+     creatorDni es el DNI del usuario admin que está creando el nuevo usuario */
   const creatorDni = req.body.creatorDni;
-  let finalRole = rol || 'cliente';
+  let finalRole = rol || 'cliente'; /* Rol por defecto es cliente */
 
+  /* Obtener conexión */
   const connection = await connectDB();
   
   try {
+    /* Si viene creatorDni, verificar que sea un admin */
     if (creatorDni) {
-      const [creatorRows] = await connection.execute('SELECT dni, rol FROM usuarios WHERE dni = ?', [creatorDni]);
+      const [creatorRows] = await connection.execute(
+        'SELECT dni, rol FROM usuarios WHERE dni = ?', 
+        [creatorDni]
+      );
       if (creatorRows.length === 0) {
-        return res.status(403).json({ success: false, message: 'Acceso denegado. Usuario creador no encontrado.' });
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Acceso denegado. Usuario creador no encontrado.' 
+        });
       }
+      /* Si el creador es admin, el nuevo usuario es admin; si no, es cliente */
       finalRole = creatorRows[0].rol === 'admin' ? 'admin' : 'cliente';
     } else if (rol === 'admin') {
-      // No se permite crear admin sin creatorDni
-      return res.status(403).json({ success: false, message: 'No está permitido crear administradores desde el registro público. Use la opción interna para administradores.' });
+      /* No se permite crear admin desde el registro público */
+      return res.status(403).json({ 
+        success: false, 
+        message: 'No está permitido crear administradores desde el registro público. Use la opción interna para administradores.' 
+      });
     }
 
-    // Verificar si el DNI ya existe
+    /* VALIDACIÓN: DNI no puede estar duplicado */
     const [existingDni] = await connection.execute(
       'SELECT dni FROM usuarios WHERE dni = ?',
       [dni]
@@ -875,7 +1103,7 @@ app.post('/api/register', async (req, res) => {
       });
     }
     
-    // Verificar si el teléfono ya existe
+    /* VALIDACIÓN: Teléfono no puede estar duplicado */
     const [existingPhone] = await connection.execute(
       'SELECT telefono FROM usuarios WHERE telefono = ?',
       [telefono]
@@ -888,10 +1116,11 @@ app.post('/api/register', async (req, res) => {
       });
     }
     
-    // Hashear contraseña
+    /* ENCRIPTACIÓN: Hashear la contraseña con bcryptjs
+       hash(password, 10) = 10 iteraciones de encriptación */
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // Insertar usuario con rol final
+    /* INSERTAR el nuevo usuario en la base de datos */
     await connection.execute(
       'INSERT INTO usuarios (dni, nombre, apellido, telefono, password, rol) VALUES (?, ?, ?, ?, ?, ?)',
       [dni, nombre, apellido, telefono, hashedPassword, finalRole]
@@ -917,10 +1146,25 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// Login de usuario
+/* ENDPOINT: POST /api/login
+   =========================
+   Autentica un usuario y devuelve sus datos
+   
+   BODY: {
+     dni: string (DNI del usuario),
+     password: string (contraseña)
+   }
+   
+   RESPONDE: { 
+     success: true, 
+     message: "Login exitoso",
+     usuario: { dni, nombre, apellido, telefono, rol }
+   } */
 app.post('/api/login', async (req, res) => {
+  /* DESESTRUCTURACIÓN: Obtener DNI y contraseña del body */
   const { dni, password } = req.body;
   
+  /* VALIDACIÓN: Ambos campos son obligatorios */
   if (!dni || !password) {
     return res.status(400).json({ 
       success: false,
@@ -928,14 +1172,17 @@ app.post('/api/login', async (req, res) => {
     });
   }
   
+  /* Obtener conexión a la base de datos */
   const connection = await connectDB();
   
   try {
+    /* BUSCAR el usuario en la base de datos por DNI */
     const [users] = await connection.execute(
       'SELECT dni, nombre, apellido, telefono, password, rol, activo FROM usuarios WHERE dni = ?',
       [dni]
     );
     
+    /* Si el usuario no existe */
     if (users.length === 0) {
       return res.status(401).json({ 
         success: false,
@@ -943,8 +1190,10 @@ app.post('/api/login', async (req, res) => {
       });
     }
     
+    /* Obtener el usuario encontrado */
     const user = users[0];
     
+    /* VERIFICAR si el usuario está activo */
     if (!user.activo) {
       return res.status(401).json({ 
         success: false,
@@ -952,6 +1201,8 @@ app.post('/api/login', async (req, res) => {
       });
     }
     
+    /* VERIFICAR la contraseña usando bcrypt.compare
+       Compara la contraseña ingresada con la contraseña encriptada en BD */
     const isValidPassword = await bcrypt.compare(password, user.password);
     
     if (!isValidPassword) {
@@ -961,8 +1212,11 @@ app.post('/api/login', async (req, res) => {
       });
     }
     
+    /* ELIMINAR la contraseña del objeto antes de devolver
+       Extraer solo los datos que se necesitan (sin password) */
     const { password: _, ...userWithoutPassword } = user;
     
+    /* RESPONDER CON ÉXITO Y DATOS DEL USUARIO */
     res.json({ 
       success: true,
       message: 'Login exitoso',
@@ -980,16 +1234,32 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Crear un nuevo administrador (solo por otro admin)
+/* ENDPOINT: POST /api/admins
+   ==========================
+   Crea un nuevo administrador
+   Solo otro admin puede crear un nuevo admin
+   
+   BODY: {
+     dni, nombre, apellido, telefono, password, creatorDni
+   } */
 app.post('/api/admins', async (req, res) => {
+  /* DESESTRUCTURACIÓN: Obtener datos del body */
   const { dni, nombre, apellido, telefono, password, creatorDni } = req.body;
 
+  /* VALIDACIÓN: Todos los campos son obligatorios */
   if (!dni || !nombre || !apellido || !telefono || !password || !creatorDni) {
-    return res.status(400).json({ success: false, message: 'dni, nombre, apellido, telefono, password y creatorDni son obligatorios' });
+    return res.status(400).json({ 
+      success: false, 
+      message: 'dni, nombre, apellido, telefono, password y creatorDni son obligatorios' 
+    });
   }
 
+  /* VALIDACIÓN: Contraseña mínimo 6 caracteres */
   if (password.length < 6) {
-    return res.status(400).json({ success: false, message: 'La contraseña debe tener al menos 6 caracteres' });
+    return res.status(400).json({ 
+      success: false, 
+      message: 'La contraseña debe tener al menos 6 caracteres' 
+    });
   }
 
   const connection = await connectDB();
@@ -1012,28 +1282,46 @@ app.post('/api/admins', async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    await connection.execute('INSERT INTO usuarios (dni, nombre, apellido, telefono, password, rol) VALUES (?, ?, ?, ?, ?, ?)', [dni, nombre, apellido, telefono, hashedPassword, 'admin']);
+    await connection.execute(
+      'INSERT INTO usuarios (dni, nombre, apellido, telefono, password, rol) VALUES (?, ?, ?, ?, ?, ?)', 
+      [dni, nombre, apellido, telefono, hashedPassword, 'admin']
+    );
 
-    res.status(201).json({ success: true, message: 'Administrador creado exitosamente' });
+    res.status(201).json({ 
+      success: true, 
+      message: 'Administrador creado exitosamente' 
+    });
   } catch (err) {
     console.error('Error creando administrador:', err);
-    res.status(500).json({ success: false, message: 'Error del servidor' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error del servidor' 
+    });
   } finally {
     if (connection) connection.release();
   }
 });
 
-// Inicializar base de datos y servidor
+/* ============================================================
+   INICIALIZACIÓN DEL SERVIDOR
+   ============================================================ */
+
+/* FUNCIÓN: Iniciar el servidor
+   Se ejecuta al arrancar el programa */
 async function startServer() {
   try {
+    /* PASO 1: Crear el pool de conexiones a MySQL */
     await createPool();
+    
+    /* PASO 2: Crear todas las tablas necesarias en la BD */
     await createTables();
     await createVehiclesTable();
     await createCitasTable();
 
-    
-    const PORT = process.env.PORT || 3001;
+    /* PASO 3: Iniciar el servidor Express en el puerto especificado */
+    const PORT = process.env.PORT || 3001; /* Puerto por defecto: 3001 */
     app.listen(PORT, () => {
+      /* El servidor está corriendo */
       console.log(`🚗 Servidor AltaGama API corriendo en http://localhost:${PORT}`);
       console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
       console.log(`🔑 Usuario admin: DNI 12345678, Contraseña: admin123`);
@@ -1041,7 +1329,9 @@ async function startServer() {
       console.log(`💡 Esta es solo la API. El frontend Angular debe ejecutarse por separado.`);
     });
   } catch (error) {
+    /* Si hay error al iniciar */
     if (error.code === 'EADDRINUSE') {
+      /* Error: El puerto ya está en uso */
       console.error(`❌ Error: El puerto ${error.port} ya está en uso.`);
       console.error('💡 Soluciones:');
       console.error('   1. Espera a que el otro proceso termine');

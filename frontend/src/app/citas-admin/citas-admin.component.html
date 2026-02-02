@@ -17,7 +17,7 @@
     </div>
 
     <!-- PENDIENTES -->
-    <div *ngIf="selectedTab === 'pendientes'">
+    <section *ngIf="selectedTab === 'pendientes'">
       <h3>🟡 Pendientes ({{ pendientes.length }})</h3>
 
       <div *ngIf="pendientes.length === 0">No hay citas pendientes.</div>
@@ -55,10 +55,10 @@
           </tr>
         </tbody>
       </table>
-    </div>
+    </section>
 
     <!-- CONTESTADAS -->
-    <div *ngIf="selectedTab === 'contestadas'">
+    <section *ngIf="selectedTab === 'contestadas'">
       <h3>✅ Contestadas ({{ contestadas.length }})</h3>
 
       <div *ngIf="contestadas.length === 0">No hay citas contestadas.</div>
@@ -89,6 +89,6 @@
           </tr>
         </tbody>
       </table>
-    </div>
+    </section>
   </div>
 </div>
